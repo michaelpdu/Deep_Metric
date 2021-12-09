@@ -512,7 +512,7 @@ class BNInception(nn.Module):
 def BN_Inception(dim=512, pretrained=True, model_path=None):
     model = BNInception(dim=512)
     if model_path is None:
-        model_path = '/home/xunwang/.torch/models/bn_inception-52deb4733.pth'
+        model_path = 'bn_inception-52deb4733.pth'
     if pretrained is True:
         model_dict = model.state_dict()
         pretrained_dict = torch.load(model_path)
@@ -521,13 +521,17 @@ def BN_Inception(dim=512, pretrained=True, model_path=None):
         model.load_state_dict(model_dict)
     return model
 
+
 def main():
-    model = BN_Inception(dim=512, pretrained=True)
+    import os
+    bn_inception_path = os.path.join('bn_inception', 'bn_inception-52deb4733.pth')
+    assert os.path.exists(bn_inception_path), 'Cannot find pre-trained bn_inception model, %s' % bn_inception_path
+    model = BN_Inception(dim=512, pretrained=True, model_path=bn_inception_path)
     # print(model)
     images = Variable(torch.ones(8, 3, 227, 227))
     out_ = model(images)
     print(out_.data.shape)
 
+
 if __name__ == '__main__':
     main()
-

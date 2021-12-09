@@ -17,18 +17,19 @@ def normalize(x):
 
 
 def extract_features(model, data_loader, print_freq=1, metric=None, pool_feature=False):
+    use_gpu = torch.cuda.is_available()
     # model.eval()
     batch_time = AverageMeter()
     data_time = AverageMeter()
 
     feature_cpu = torch.FloatTensor()
-    feature_gpu = torch.FloatTensor().cuda()
+    feature_gpu = torch.FloatTensor().cuda() if use_gpu else torch.FloatTensor()
 
     trans_inter = 1e4
     labels = list()
     end = time.time()
 
-    for i, (imgs, pids) in enumerate(data_loader):
+    for i, (imgs, pids, _) in enumerate(data_loader):
         imgs = imgs
         outputs = extract_cnn_feature(model, imgs, pool_feature=pool_feature)
         feature_gpu = torch.cat((feature_gpu, outputs.data), 0)
@@ -40,7 +41,7 @@ def extract_features(model, data_loader, print_freq=1, metric=None, pool_feature
             end = time.time()
             # print('transfer to cpu {} / {}'.format(i+1, len(data_loader)))
             feature_cpu = torch.cat((feature_cpu, feature_gpu.cpu()), 0)
-            feature_gpu = torch.FloatTensor().cuda()
+            feature_gpu = torch.FloatTensor().cuda() if use_gpu else torch.FloatTensor()
             batch_time.update(time.time() - end)
             print('Extract Features: [{}/{}]\t'
                   'Time {:.3f} ({:.3f})\t'

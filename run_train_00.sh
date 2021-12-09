@@ -2,7 +2,7 @@
 DATA=cub
 DATA_ROOT=data
 Gallery_eq_Query=True
-LOSS=Weight
+LOSS=LiftedStructure
 CHECKPOINTS=ckps
 R=.pth.tar
 
@@ -35,7 +35,8 @@ if_exist_mkdir ${SAVE_DIR}
 
 # if [ ! -n "$1" ] ;then
 echo "Begin Training!"
-CUDA_VISIBLE_DEVICES=0 python train.py --net ${NET} \
+# CUDA_VISIBLE_DEVICES=0
+python train.py --net ${NET} \
 --data $DATA \
 --data_root ${DATA_ROOT} \
 --init random \

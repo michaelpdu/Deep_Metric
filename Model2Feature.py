@@ -11,12 +11,15 @@ cudnn.benchmark = True
 
 
 def Model2Feature(data, net, checkpoint, dim=512, width=224, root=None, nThreads=16, batch_size=100, pool_feature=False, **kargs):
+    use_gpu = torch.cuda.is_available()
     dataset_name = data
     model = models.create(net, dim=dim, pretrained=False)
     # resume = load_checkpoint(ckp_path)
     resume = checkpoint
     model.load_state_dict(resume['state_dict'])
-    model = torch.nn.DataParallel(model).cuda()
+    model = torch.nn.DataParallel(model)
+    if use_gpu:
+        model = model.cuda()
     data = DataSet.create(data, width=width, root=root)
     
     if dataset_name in ['shop', 'jd_test']:

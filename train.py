@@ -17,9 +17,11 @@ from utils import orth_reg
 import DataSet
 import numpy as np
 import os.path as osp
+
 cudnn.benchmark = True
 
-use_gpu = True
+use_gpu = torch.cuda.is_available()
+
 
 # Batch Norm Freezer : bring 2% improvement on CUB 
 def set_bn_eval(m):
@@ -30,15 +32,17 @@ def set_bn_eval(m):
 
 def main(args):
     # s_ = time.time()
+    print(args)
 
     save_dir = args.save_dir
-    mkdir_if_missing(save_dir)
-
+    os.makedirs(args.save_dir, exist_ok=True)
     sys.stdout = logging.Logger(os.path.join(save_dir, 'log.txt'))
     display(args)
     start = 0
 
-    model = models.create(args.net, pretrained=True, dim=args.dim)
+    bn_inception_path = os.path.join(args.pretrained_model_dir, 'bn_inception-52deb4733.pth')
+    assert os.path.exists(bn_inception_path), 'Cannot find pre-trained bn_inception model, %s' % bn_inception_path
+    model = models.create(args.net, pretrained=True, dim=args.dim, model_path=bn_inception_path)
 
     # for vgg and densenet
     if args.resume is None:
@@ -53,15 +57,16 @@ def main(args):
         model.load_state_dict(weight)
 
     model = torch.nn.DataParallel(model)
-    model = model.cuda()
+    if use_gpu:
+        model = model.cuda()
 
     # freeze BN
     if args.freeze_BN is True:
         print(40 * '#', '\n BatchNorm frozen')
         model.apply(set_bn_eval)
     else:
-        print(40*'#', 'BatchNorm NOT frozen')
-        
+        print(40 * '#', 'BatchNorm NOT frozen')
+
     # Fine-tune the model: the learning rate for pre-trained parameter is 1/10
     new_param_ids = set(map(id, model.module.classifier.parameters()))
 
@@ -72,8 +77,8 @@ def main(args):
                    id(p) not in new_param_ids]
 
     param_groups = [
-                {'params': base_params, 'lr_mult': 0.0},
-                {'params': new_params, 'lr_mult': 1.0}]
+        {'params': base_params, 'lr_mult': 0.0},
+        {'params': new_params, 'lr_mult': 1.0}]
 
     print('initial model is save at %s' % save_dir)
 
@@ -83,7 +88,8 @@ def main(args):
     criterion = losses.create(args.loss, margin=args.margin, alpha=args.alpha, base=args.loss_base).cuda()
 
     # Decor_loss = losses.create('decor').cuda()
-    data = DataSet.create(args.data, ratio=args.ratio, width=args.width, origin_width=args.origin_width, root=args.data_root)
+    data = DataSet.create(args.data, ratio=args.ratio, width=args.width, origin_width=args.origin_width,
+                          root=args.data_root)
 
     train_loader = torch.utils.data.DataLoader(
         data.train, batch_size=args.batch_size,
@@ -99,8 +105,8 @@ def main(args):
 
         if epoch == 1:
             optimizer.param_groups[0]['lr_mul'] = 0.1
-        
-        if (epoch+1) % args.save_step == 0 or epoch==0:
+
+        if (epoch + 1) % args.save_step == 0 or epoch == 0:
             if use_gpu:
                 state_dict = model.module.state_dict()
             else:
@@ -108,8 +114,9 @@ def main(args):
 
             save_checkpoint({
                 'state_dict': state_dict,
-                'epoch': (epoch+1),
+                'epoch': (epoch + 1),
             }, is_best=False, fpath=osp.join(args.save_dir, 'ckp_ep' + str(epoch + 1) + '.pth.tar'))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Deep Metric Learning')
@@ -149,6 +156,8 @@ if __name__ == '__main__':
                         help='name of Data Set')
     parser.add_argument('--data_root', type=str, default=None,
                         help='path to Data Set')
+    parser.add_argument('--pretrained_model_dir', type=str, default='',
+                        help='path to pre-trained bn_inception root dir')
 
     parser.add_argument('--net', default='VGG16-BN')
     parser.add_argument('--loss', default='branch', required=True,
@@ -159,7 +168,7 @@ if __name__ == '__main__':
                         help='number of epochs to save model')
 
     # Resume from checkpoint
-    parser.add_argument('--resume', '-r', default=None,
+    parser.add_argument('--resume', '-r', default='ckp_ep600.pth.tar',
                         help='the path of the pre-trained model')
 
     # train
@@ -171,18 +180,11 @@ if __name__ == '__main__':
     #                     help='where the trained models save')
     parser.add_argument('--save_dir', default=None,
                         help='where the trained models save')
-    parser.add_argument('--nThreads', '-j', default=16, type=int, metavar='N',
+    parser.add_argument('--nThreads', '-j', default=8, type=int, metavar='N',
                         help='number of data loading threads (default: 2)')
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight-decay', type=float, default=5e-4)
 
     parser.add_argument('--loss_base', type=float, default=0.75)
 
-
-
-
     main(parser.parse_args())
-
-
-
-

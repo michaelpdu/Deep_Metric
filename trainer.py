@@ -2,11 +2,12 @@
 from __future__ import print_function, absolute_import
 import time
 from utils import AverageMeter, orth_reg
-import  torch
+import torch
 from torch.autograd import Variable
 from torch.backends import cudnn
 
 cudnn.benchmark = True
+use_gpu = torch.cuda.is_available()
 
 
 def train(epoch, model, criterion, optimizer, train_loader, args):
@@ -26,8 +27,8 @@ def train(epoch, model, criterion, optimizer, train_loader, args):
         inputs, labels = data_
 
         # wrap them in Variable
-        inputs = Variable(inputs).cuda()
-        labels = Variable(labels).cuda()
+        inputs = Variable(inputs).cuda() if use_gpu else Variable(inputs)
+        labels = Variable(labels).cuda() if use_gpu else Variable(labels)
 
         optimizer.zero_grad()
 

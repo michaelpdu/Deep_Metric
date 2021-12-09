@@ -30,9 +30,10 @@ from torch.autograd import Variable
 
 def extract_cnn_feature(model, inputs, pool_feature=False):
     model.eval()
+    use_gpu = torch.cuda.is_available()
     with torch.no_grad():
         inputs = to_torch(inputs)
-        inputs = Variable(inputs).cuda()
+        inputs = Variable(inputs).cuda() if use_gpu else Variable(inputs)
         if pool_feature is False:
             outputs = model(inputs)
             return outputs
