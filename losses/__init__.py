@@ -13,7 +13,7 @@ __factory = {
     'Binomial': BinomialLoss,
     'LiftedStructure': LiftedStructureLoss,
     # 'Weight': WeightLoss,
-    'HardMining': HardMiningLoss,
+    'HardMining': HardMiningLoss
 }
 
 

@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     checkpoint = load_checkpoint(args.resume)
 
-    # 修改state_dict中的keys，去除module.
+    # 淇敼state_dict涓殑keys锛屽幓闄odule.
     from collections import OrderedDict
     new_state_dict = OrderedDict()
     for name, param in checkpoint['state_dict'].items():

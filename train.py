@@ -85,7 +85,9 @@ def main(args):
     optimizer = torch.optim.Adam(param_groups, lr=args.lr,
                                  weight_decay=args.weight_decay)
 
-    criterion = losses.create(args.loss, margin=args.margin, alpha=args.alpha, base=args.loss_base).cuda()
+    criterion = losses.create(args.loss, margin=args.margin, alpha=args.alpha, base=args.loss_base)
+    if use_gpu:
+        criterion = criterion.cuda()
 
     # Decor_loss = losses.create('decor').cuda()
     data = DataSet.create(args.data, ratio=args.ratio, width=args.width, origin_width=args.origin_width,
@@ -97,9 +99,7 @@ def main(args):
         drop_last=True, pin_memory=True, num_workers=args.nThreads)
 
     # save the train information
-
     for epoch in range(start, args.epochs):
-
         train(epoch=epoch, model=model, criterion=criterion,
               optimizer=optimizer, train_loader=train_loader, args=args)
 
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                         help='path to pre-trained bn_inception root dir')
 
     parser.add_argument('--net', default='VGG16-BN')
-    parser.add_argument('--loss', default='branch', required=True,
+    parser.add_argument('--loss', default='LiftedStructure', required=True,
                         help='loss for training network')
     parser.add_argument('--epochs', default=600, type=int, metavar='N',
                         help='epochs for training process')
